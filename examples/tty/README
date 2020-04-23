@@ -1,0 +1,3 @@
+W moim rozwiązaniu używam mutexów aby uniemożliwić dwóm wątkom na raz uruchomienie
+procedury Write na terminalu. Dlatego przed skompilowaniem należy ustawić flagę
+configUSE_MUTEXES na 1 (w pliku FreeRTOSConfig.h).
