@@ -94,7 +94,7 @@ static void vInputTask(void *data) {
       FileWrite(tty, buf + 2, r - 2);
       FileWrite(tty, "\n", 1);
     } else {
-      FileWrite(tty, "unknown command\n", 16);
+      FileWrite(tty, "unknown command", 16);
     }
 
   }

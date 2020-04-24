@@ -37,20 +37,27 @@ static void sendLine(char *buf, size_t nbytes) {
   xQueueSendToBack(ReadQueue, &ch, 0);
 }
 
-static void eraseCurLine() {
+static void doDel() {
+  if (linepos == 0)
+    return;
   short x, y;
   ConsoleGetCursor(&x, &y);
-  if (x < linepos) {
+  if (x == 0) {
     y--;
-    x = 80;
+    x = 81;
   }
-  printf("cursor %d %d\n", x, y);
-  ConsoleSetCursor(0, y);
-  printf("erasing from 0 to %d\n", linepos);
-  for (size_t i = 0; i < linepos; ++i)
-    ConsolePutChar(' ');
-  ConsoleSetCursor(0, y);
-  linepos = 0;
+  linepos--;
+  ConsoleSetCursor(x-1, y);
+  ConsolePutChar(' ');
+  ConsoleSetCursor(x-1, y);
+}
+
+static void eraseCurLine() {
+  while (linepos > 0) {
+    /* remove last char */
+    doDel();
+  }
+  return;
 }
 
 static void doReturn() {
@@ -58,23 +65,6 @@ static void doReturn() {
     ConsolePutChar('\n');
   sendLine(line, linepos);
   linepos = 0;
-}
-
-static void doDel() {
-  short x, y;
-  ConsoleGetCursor(&x, &y);
-  if (x < linepos) {
-    y--;
-    x = 80;
-  }
-  printf("cursor %d %d\n", x, y);
-  ConsoleSetCursor(x-1, y);
-  ConsolePutChar(' ');
-  if (linepos > 0)
-    linepos--;
-  ConsoleSetCursor(x-1, y);
-  ConsoleGetCursor(&x, &y);
-  printf("cursor %d %d\n", x, y);
 }
 
 static void doPrintable(char ch) {
