@@ -10,9 +10,6 @@
 #include <keyboard.h>
 #include <file.h>
 
-#define MAX_CANON 80
-#define MAX_WRITE 1024
-
 File_t *TtyOpen(void);
 
 

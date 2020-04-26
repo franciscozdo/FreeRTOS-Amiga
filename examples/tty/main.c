@@ -22,10 +22,12 @@ static COPLIST(cp, 40);
 
 #define mainINPUT_TASK_PRIORITY 2
 
-int atoh(char *buf, int *offset) {
+int atoh(char *buf, int *offset, int maxoffset) {
   int i = *offset;
   int r = 0;
   while ((buf[i] >= '0' && buf[i] <= '9') || (buf[i] >= 'a' && buf[i] <= 'f')) {
+    if (i >= maxoffset)
+      break;
     r *= 16;
     if (buf[i] >= '0' && buf[i] <= '9') 
       r += buf[i] - '0';
@@ -41,9 +43,9 @@ void parseCommand(char *buf, int len, char *c, uint32_t *a, uint32_t *b) {
   int off = 0;
   *c = buf[0];
   off += 2;
-  *a = atoh(buf, &off);
+  *a = atoh(buf, &off, len);
   off++;
-  *b = atoh(buf, &off);
+  *b = atoh(buf, &off, len);
 }
 
 char *bytetochar(uint8_t b) {
@@ -63,9 +65,9 @@ char *bytetochar(uint8_t b) {
 }
 
 void dumpMemory(File_t *tty, void *start, void *end) {
-  while (start <= end) {
-    FileWrite(tty, " ", 1);
+  while (start < end) {
     FileWrite(tty, bytetochar(*(uint8_t *)start), 2);
+    FileWrite(tty, " ", 1);
     start++;
   }
 }
@@ -87,14 +89,16 @@ static void vInputTask(void *data) {
       CopLoadColor(cp, arg1, 
           ((arg2 & 0xf) << 0) | (arg2 & 0xf0) | ((arg2 & 0xf00) >> 0));
     } else if (command == 'd') {
-      FileWrite(tty, "memory dump: ", 12);
-      dumpMemory(tty, arg1 - (arg1 % 2), arg2 + arg2 % 2);
+      FileWrite(tty, "memory dump: ", 13);
+      dumpMemory(tty, arg1, arg2);
       FileWrite(tty, "\n", 1);
     } else if (command == 'e') {
+      if (r <= 2)
+        continue;
       FileWrite(tty, buf + 2, r - 2);
       FileWrite(tty, "\n", 1);
     } else {
-      FileWrite(tty, "unknown command", 16);
+      FileWrite(tty, "unknown command\n", 16);
     }
 
   }
@@ -144,6 +148,9 @@ int main(void) {
 
   xTaskCreate(vInputTask, "input", configMINIMAL_STACK_SIZE, TtyOpen(),
               mainINPUT_TASK_PRIORITY, &input_handle);
+//  TaskHandle_t t2;
+//  xTaskCreate(vInputTask, "input", configMINIMAL_STACK_SIZE, TtyOpen(),
+//              mainINPUT_TASK_PRIORITY, &t2);
 
   vTaskStartScheduler();
 

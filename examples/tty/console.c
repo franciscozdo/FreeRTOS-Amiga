@@ -80,6 +80,10 @@ static void ConsoleNextLine(void) {
   cons.cursor.x = 0;
   if (++cons.cursor.y >= cons.height)
     cons.cursor.y = 0;
+
+  /* clear the line you jumped to */
+  for (short x = cons.cursor.x; x < cons.width; x++)
+    ConsoleDrawChar(x, cons.cursor.y, ' ');
 }
 
 static void ConsoleNextChar(void) {
