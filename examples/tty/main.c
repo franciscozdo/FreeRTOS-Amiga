@@ -91,7 +91,7 @@ static void vInputTask(void *data) {
                    ((arg2 & 0xf) << 0) | (arg2 & 0xf0) | ((arg2 & 0xf00) >> 0));
     } else if (command == 'd') {
       FileWrite(tty, "memory dump: ", 13);
-      dumpMemory(tty, arg1, arg2);
+      dumpMemory(tty, (void *)arg1, (void *)arg2);
       FileWrite(tty, "\n", 1);
     } else if (command == 'e') {
       if (r <= 2)
