@@ -17,6 +17,31 @@ static xTaskHandle handle;
 
 extern void vPortDefaultTrapHandler(struct TrapFrame *);
 
+/* TODO: use C bit fields to define instruction encoding */
+typedef struct MulsInst {
+} MulsInst_t;
+
+typedef struct DivsInst {
+} DivsInst_t;
+
+/* Keep in mind that:
+ * - PC & SR are placed at different positions in the trap frame
+ *   for 68000 and 68010 processors
+ * - gcc replaces 32-bit multiplication and division by calls to
+ *   __mulsi3 and __divsi3 procedures
+ */
+static bool EmulMuls(struct TrapFrame *frame) {
+  /* TODO: implement muls.l instruction emulation */
+  (void)frame;
+  return false;
+}
+
+static bool EmulDivs(struct TrapFrame *frame) {
+  /* TODO: implement divsl.l instruction emulation */
+  (void)frame;
+  return false;
+}
+
 void vPortTrapHandler(struct TrapFrame *frame) {
   /* TODO: implement muls.l and divsl.l instruction emulation. */
   if (frame->trapnum == T_ILLINST) {
@@ -120,6 +145,9 @@ void vPortTrapHandler(struct TrapFrame *frame) {
       return;
     }
   }
+  if (EmulMuls(frame) || EmulDivs(frame))
+    return;
+
   custom.color[0] = 0xf00;
   vPortDefaultTrapHandler(frame);
 }
