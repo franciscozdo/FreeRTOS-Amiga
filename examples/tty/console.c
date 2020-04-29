@@ -58,7 +58,8 @@ static void ConsoleDrawChar(short x, short y, uint8_t c) {
   dst += cons.bitmap->width * y + x;
 
   do {
-    *dst = *src++; dst += dwidth;
+    *dst = *src++;
+    dst += dwidth;
   } while (--h != -1);
 }
 
@@ -70,7 +71,8 @@ void ConsoleDrawCursor(void) {
   dst += cons.bitmap->width * cons.cursor.y + cons.cursor.x;
 
   do {
-    *dst = ~*dst; dst += dwidth;
+    *dst = ~*dst;
+    dst += dwidth;
   } while (--h != -1);
 }
 
@@ -106,7 +108,6 @@ void ConsolePutChar(char c) {
       break;
   }
 }
-
 
 void ConsolePrintf(const char *fmt, ...) {
   va_list ap;

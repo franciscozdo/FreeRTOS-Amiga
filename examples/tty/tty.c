@@ -8,7 +8,6 @@
 #define MAX_CANON 80
 #define MAX_WRITE 1024 // write buffer
 
-
 static TaskHandle_t TtyTask;
 static QueueHandle_t KeyQueue;
 static QueueHandle_t ReadQueue, WriteQueue;
@@ -26,19 +25,17 @@ static long TtyWrite(File_t *f, const char *buf, size_t nbyte);
 static void TtyClose(File_t *f);
 static void PushKeyEventFromISR(const KeyEvent_t *ev);
 
-static FileOps_t TtyOps = {
-  .read  = (FileRead_t) TtyRead,
-  .write = (FileWrite_t)TtyWrite,
-  .close = TtyClose
-};
+static FileOps_t TtyOps = {.read = (FileRead_t)TtyRead,
+                           .write = (FileWrite_t)TtyWrite,
+                           .close = TtyClose};
 
-static char line[MAX_CANON + 1]; 
-static size_t linepos = 0; 
+static char line[MAX_CANON + 1];
+static size_t linepos = 0;
 
 static void sendLine(char *buf, size_t nbytes) {
   /* push every character from buffer on queue */
   for (size_t i = 0; i < nbytes && i < 80; ++i) {
-    //printf("send to read %c\n", *(buf + i));
+    // printf("send to read %c\n", *(buf + i));
     xQueueSendToBack(ReadQueue, buf + i, 0);
   }
 
@@ -63,9 +60,9 @@ static void doDel() {
   linepos--;
 
   /* remove from screen */
-  ConsoleSetCursor(x-1, y);
+  ConsoleSetCursor(x - 1, y);
   ConsolePutChar(' ');
-  ConsoleSetCursor(x-1, y);
+  ConsoleSetCursor(x - 1, y);
 }
 
 static void eraseCurLine() {
@@ -111,14 +108,14 @@ static int handleKeyEvent(KeyEvent_t ev) {
       }
       return 1;
     }
-    
+
     if (ev.code == KEY_RETURN) {
       /* accept line and send to read */
       printf("pressed RETURN\n");
       doReturn();
       return 1;
     }
-    if (ev.code ==  KEY_BACKSPACE) {
+    if (ev.code == KEY_BACKSPACE) {
       /* remove last character */
       printf("pressed BACKSPACE\n");
       doDel();
@@ -156,21 +153,21 @@ static void TtyThread(__unused void *data) {
     xTaskNotifyWait(0, KEY_EVENT | WRITE_EVENT, &notifyValue, portMAX_DELAY);
 
     /* undraw cursor */
-    ConsoleDrawCursor(); 
+    ConsoleDrawCursor();
 
     if (notifyValue & KEY_EVENT) {
       /* got some key event */
       KeyEvent_t ev;
       while (xQueueReceive(KeyQueue, (void *)&ev, 0) == pdTRUE)
-        handleKeyEvent(ev); 
+        handleKeyEvent(ev);
 
     } else if (notifyValue & WRITE_EVENT) {
       /* got something to write */
       handleWriteEvent();
     }
-    
+
     /* draw cursor back */
-    ConsoleDrawCursor(); 
+    ConsoleDrawCursor();
   }
 }
 
@@ -179,7 +176,6 @@ File_t *TtyOpen(void) {
   f.usecount++;
   if (f.usecount == 1) {
     printf("Init tty\n");
-    /* TODO: synchronization */
     KeyboardInit(PushKeyEventFromISR);
 
     /* initialize all queues */
@@ -193,7 +189,7 @@ File_t *TtyOpen(void) {
     xQueueSendToBack(WriteWaitQueue, NULL, portMAX_DELAY);
 
     /* create task */
-    xTaskCreate(TtyThread, "tty_driver", configMINIMAL_STACK_SIZE, NULL, 
+    xTaskCreate(TtyThread, "tty_driver", configMINIMAL_STACK_SIZE, NULL,
                 TTY_PRIORITY, &TtyTask);
   }
   return &f;
@@ -218,7 +214,7 @@ static long TtyRead(__unused File_t *f, char *buf, size_t nbyte) {
   buf[0] = '\0';
 
   /* read from queue until \0 character or reading nbyte characters */
-  for(size_t i = 0; i < nbyte; ++i) {
+  for (size_t i = 0; i < nbyte; ++i) {
     xQueueReceive(ReadQueue, (void *)&ch, portMAX_DELAY);
     if (ch == '\0') {
       printf("read completed (");
@@ -242,7 +238,7 @@ static long TtyRead(__unused File_t *f, char *buf, size_t nbyte) {
 
 static long TtyWrite(__unused File_t *f, const char *buf, size_t nbyte) {
   printf("want to write \n");
-  
+
   /* take token from Queue */
   xQueueReceive(WriteWaitQueue, NULL, portMAX_DELAY);
 
@@ -254,7 +250,7 @@ static long TtyWrite(__unused File_t *f, const char *buf, size_t nbyte) {
   for (size_t i = 0; i < nbyte; ++i) {
     /* send char to queue if can or wait until you can */
     if (xQueueSendToBack(WriteQueue, buf + i, 0) == errQUEUE_FULL) {
-      /* 
+      /*
        * there is no space for more characters
        * notify tty driver that queue is full
        * and try again

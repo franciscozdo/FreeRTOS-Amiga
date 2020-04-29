@@ -29,9 +29,9 @@ int atoh(char *buf, int *offset, int maxoffset) {
     if (i >= maxoffset)
       break;
     r *= 16;
-    if (buf[i] >= '0' && buf[i] <= '9') 
+    if (buf[i] >= '0' && buf[i] <= '9')
       r += buf[i] - '0';
-    else if (buf[i] >= 'a' && buf[i] <= 'f') 
+    else if (buf[i] >= 'a' && buf[i] <= 'f')
       r += buf[i] - 'a' + 10;
     i++;
   }
@@ -78,7 +78,8 @@ static void vInputTask(void *data) {
   for (;;) {
     static char buf[1024];
     int r = FileRead(tty, buf, 1024);
-    if (r == 0) continue;
+    if (r == 0)
+      continue;
 
     char command;
     uint32_t arg1, arg2;
@@ -86,8 +87,8 @@ static void vInputTask(void *data) {
     printf("command: %c, %d %d\n", command, arg1, arg2);
 
     if (command == 'c') {
-      CopLoadColor(cp, arg1, 
-          ((arg2 & 0xf) << 0) | (arg2 & 0xf0) | ((arg2 & 0xf00) >> 0));
+      CopLoadColor(cp, arg1,
+                   ((arg2 & 0xf) << 0) | (arg2 & 0xf0) | ((arg2 & 0xf00) >> 0));
     } else if (command == 'd') {
       FileWrite(tty, "memory dump: ", 13);
       dumpMemory(tty, arg1, arg2);
@@ -100,7 +101,6 @@ static void vInputTask(void *data) {
     } else {
       FileWrite(tty, "unknown command\n", 16);
     }
-
   }
 }
 
@@ -114,7 +114,6 @@ static void SystemClockTickHandler(__unused void *data) {
 INTSERVER_DEFINE(SystemClockTick, 10, SystemClockTickHandler, NULL);
 
 static xTaskHandle input_handle;
-
 
 int main(void) {
   portNOP(); /* Breakpoint for simulator. */
@@ -141,20 +140,20 @@ int main(void) {
   CopListActivate(cp);
 
   /* Enable bitplane and sprite fetchers' DMA. */
-  EnableDMA(DMAF_RASTER|DMAF_SPRITE);
+  EnableDMA(DMAF_RASTER | DMAF_SPRITE);
 
   ConsoleInit(&screen_bm, &console_font);
 
-
   xTaskCreate(vInputTask, "input", configMINIMAL_STACK_SIZE, TtyOpen(),
               mainINPUT_TASK_PRIORITY, &input_handle);
-//  TaskHandle_t t2;
-//  xTaskCreate(vInputTask, "input", configMINIMAL_STACK_SIZE, TtyOpen(),
-//              mainINPUT_TASK_PRIORITY, &t2);
+  //  TaskHandle_t t2;
+  //  xTaskCreate(vInputTask, "input", configMINIMAL_STACK_SIZE, TtyOpen(),
+  //              mainINPUT_TASK_PRIORITY, &t2);
 
   vTaskStartScheduler();
 
   return 0;
 }
 
-void vApplicationIdleHook(void) {}
+void vApplicationIdleHook(void) {
+}
