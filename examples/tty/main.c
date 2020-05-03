@@ -3,6 +3,7 @@
 
 #include <interrupt.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <copper.h>
 #include <palette.h>
@@ -10,7 +11,6 @@
 #include <sprite.h>
 #include <font.h>
 #include <file.h>
-#include <stdio.h>
 
 #include "console.h"
 #include "tty.h"
@@ -22,56 +22,6 @@ static COPLIST(cp, 40);
 
 #define mainINPUT_TASK_PRIORITY 2
 
-int atoh(char *buf, int *offset, int maxoffset) {
-  int i = *offset;
-  int r = 0;
-  while ((buf[i] >= '0' && buf[i] <= '9') || (buf[i] >= 'a' && buf[i] <= 'f')) {
-    if (i >= maxoffset)
-      break;
-    r *= 16;
-    if (buf[i] >= '0' && buf[i] <= '9')
-      r += buf[i] - '0';
-    else if (buf[i] >= 'a' && buf[i] <= 'f')
-      r += buf[i] - 'a' + 10;
-    i++;
-  }
-  *offset = i;
-  return r;
-}
-
-void parseCommand(char *buf, int len, char *c, uint32_t *a, uint32_t *b) {
-  int off = 0;
-  *c = buf[0];
-  off += 2;
-  *a = atoh(buf, &off, len);
-  off++;
-  *b = atoh(buf, &off, len);
-}
-
-char *bytetochar(uint8_t b) {
-  static char s[2];
-  uint8_t b0 = (b >> 4) & 0xF;
-  uint8_t b1 = b & 0xF;
-  if (b0 < 0xA)
-    s[0] = '0' + b0;
-  else
-    s[0] = 'a' + b0 - 10;
-
-  if (b1 < 0xA)
-    s[1] = '0' + b1;
-  else
-    s[1] = 'a' + b1 - 10;
-  return s;
-}
-
-void dumpMemory(File_t *tty, void *start, void *end) {
-  while (start < end) {
-    FileWrite(tty, bytetochar(*(uint8_t *)start), 2);
-    FileWrite(tty, " ", 1);
-    start++;
-  }
-}
-
 static void vInputTask(void *data) {
   File_t *tty = data;
   FileWrite(tty, "Hello! Start writing commands.\n", 31);
@@ -81,18 +31,22 @@ static void vInputTask(void *data) {
     if (r == 0)
       continue;
 
-    char command;
-    uint32_t arg1, arg2;
-    parseCommand(buf, r, &command, &arg1, &arg2);
-    printf("command: %c, %d %d\n", command, arg1, arg2);
+    char command = buf[0];
 
     if (command == 'c') {
-      CopLoadColor(cp, arg1,
-                   ((arg2 & 0xf) << 0) | (arg2 & 0xf0) | ((arg2 & 0xf00) >> 0));
+      char *next;
+      uint32_t arg1, arg2;
+      arg1 = strtoul(buf + 2, &next, 16);
+      arg2 = strtoul(next, NULL, 16);
+
+      CopLoadColor(cp, arg1, arg2);
     } else if (command == 'd') {
-      FileWrite(tty, "memory dump: ", 13);
-      dumpMemory(tty, (void *)arg1, (void *)arg2);
-      FileWrite(tty, "\n", 1);
+      char *next;
+      uint32_t arg1, arg2;
+      arg1 = strtoul(buf + 2, &next, 16);
+      arg2 = strtoul(next, NULL, 16);
+
+      FileHexDump(tty, (void *)arg1, arg2 - arg1);
     } else if (command == 'e') {
       if (r <= 2)
         continue;
@@ -146,9 +100,6 @@ int main(void) {
 
   xTaskCreate(vInputTask, "input", configMINIMAL_STACK_SIZE, TtyOpen(),
               mainINPUT_TASK_PRIORITY, &input_handle);
-  //  TaskHandle_t t2;
-  //  xTaskCreate(vInputTask, "input", configMINIMAL_STACK_SIZE, TtyOpen(),
-  //              mainINPUT_TASK_PRIORITY, &t2);
 
   vTaskStartScheduler();
 

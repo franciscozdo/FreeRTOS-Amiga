@@ -35,7 +35,6 @@ static size_t linepos = 0;
 static void sendLine(char *buf, size_t nbytes) {
   /* push every character from buffer on queue */
   for (size_t i = 0; i < nbytes && i < 80; ++i) {
-    // printf("send to read %c\n", *(buf + i));
     xQueueSendToBack(ReadQueue, buf + i, 0);
   }
 
@@ -46,7 +45,7 @@ static void sendLine(char *buf, size_t nbytes) {
 
 static void doDel() {
   if (linepos == 0)
-    /* you can't remoce when you don't typed anything */
+    /* you can't remove when you don't typed anything */
     return;
   short x, y;
   ConsoleGetCursor(&x, &y);
@@ -84,7 +83,6 @@ static void doReturn() {
 }
 
 static void doPrintable(char ch) {
-  printf("got %c\n", ch);
   if (linepos >= 80) {
     /* You can't write more than 80 characters */
     return;
@@ -99,7 +97,6 @@ static int handleKeyEvent(KeyEvent_t ev) {
       switch (ev.code) {
         case KEY_U:
           /* kill line */
-          printf("pressed ^U\n");
           eraseCurLine();
           break;
         default:
@@ -111,13 +108,11 @@ static int handleKeyEvent(KeyEvent_t ev) {
 
     if (ev.code == KEY_RETURN) {
       /* accept line and send to read */
-      printf("pressed RETURN\n");
       doReturn();
       return 1;
     }
     if (ev.code == KEY_BACKSPACE) {
       /* remove last character */
-      printf("pressed BACKSPACE\n");
       doDel();
       return 1;
     }
@@ -133,14 +128,11 @@ static int handleKeyEvent(KeyEvent_t ev) {
 
 static void handleWriteEvent() {
   /* print all characters from queue */
-  printf("got Write: '");
   /* there is (probably) something to read */
   char ch;
   while (xQueueReceive(WriteQueue, (void *)&ch, 0) == pdTRUE) {
-    printf("%c", ch);
     ConsolePutChar(ch);
   }
-  printf("'\n");
 }
 
 static void TtyThread(__unused void *data) {
@@ -207,7 +199,6 @@ static void TtyClose(File_t *f) {
 }
 
 static long TtyRead(__unused File_t *f, char *buf, size_t nbyte) {
-  printf("read: %d bytes\n", nbyte);
   if (nbyte == 0)
     return 0;
   char ch;
@@ -217,35 +208,17 @@ static long TtyRead(__unused File_t *f, char *buf, size_t nbyte) {
   for (size_t i = 0; i < nbyte; ++i) {
     xQueueReceive(ReadQueue, (void *)&ch, portMAX_DELAY);
     if (ch == '\0') {
-      printf("read completed (");
-
-      for (size_t j = 0; j < i; ++j)
-        printf("%c", buf[j]);
-      printf(")\n");
-
       return i;
     }
     buf[i] = ch;
   }
 
-  printf("read completed (");
-  for (size_t i = 0; i < nbyte; ++i)
-    printf("%c", buf[i]);
-  printf(")\n");
-
   return nbyte;
 }
 
 static long TtyWrite(__unused File_t *f, const char *buf, size_t nbyte) {
-  printf("want to write \n");
-
   /* take token from Queue */
   xQueueReceive(WriteWaitQueue, NULL, portMAX_DELAY);
-
-  printf("write: '");
-  for (size_t i = 0; i < nbyte; ++i)
-    printf("%c", buf[i]);
-  printf("'\n");
 
   for (size_t i = 0; i < nbyte; ++i) {
     /* send char to queue if can or wait until you can */
